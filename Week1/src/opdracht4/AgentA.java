@@ -26,6 +26,8 @@ public class AgentA extends jade.core.Agent{
 	//private int amountOfPlayers = 0;
 	//private static int maxPlayers = 10;
 	private boolean isPlaying = false;
+	
+	private CalculatorHandler calculatorHandler = null;
 
 	protected void setup(){
 		Object[] args = getArguments();
@@ -117,7 +119,6 @@ public class AgentA extends jade.core.Agent{
 	}
 	public void startGame(ACLMessage msg){
 		//if(amountOfPlayers >= maxPlayers){
-		System.out.println(msg.getSender());
 		ACLMessage reply = msg.createReply();
 		msg.setLanguage(meta);
 		if(isPlaying){
@@ -134,17 +135,38 @@ public class AgentA extends jade.core.Agent{
 	}
 	
 	public void makeMove(FifteenStack stack){
+		if(stack.gameOver()){
+			String gameAlreadyOverMessage = "You lost, already game over and still send message? y u do dis? Cheater";
+			ACLMessage message = new ACLMessage(ACLMessage.INFORM);
+			message.addReceiver(oppositePlayer);
+			message.setLanguage(meta);
+			message.setContent(gameAlreadyOverMessage);
+			send(message);
+			message.setContent(logout);
+			send(message);
+		}
+		System.out.println(stack.toString());
+		
 		ACLMessage message = new ACLMessage(ACLMessage.INFORM);
 		message.addReceiver(oppositePlayer);
-		//message.addReceiver(new AID(playerName, AID.ISLOCALNAME));
-		System.out.println("I make moves man - " + oppositePlayer);
-		
+
+		if(calculatorHandler == null){
+			calculatorHandler = new CalculatorHandler();
+		}
+		calculatorHandler.calculateStack(stack);
 		message.setLanguage(game);	
-		if(stack.look(1) > 0){
+		try{
+			message.setContentObject(stack);
+		} catch(Exception ex) {
+			System.out.println("Catch");
+			ex.printStackTrace();
+		}
+		//System.out.println("Send");
+		send(message);
+		/*if(stack.look(1) > 0){
 			stack.take(1, 1);
 			System.out.println(getLocalName());
 			System.out.println(stack.toString());
-			//message.setContent(stack.toString());
 			try{
 				message.setContentObject(stack);
 			} catch(Exception ex) {
@@ -153,9 +175,8 @@ public class AgentA extends jade.core.Agent{
 			}
 			//System.out.println("Send");
 			send(message);
-		}
+		}*/
 		
-		//message.setContent(content);
 	}
 }
  
