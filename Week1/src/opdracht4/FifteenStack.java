@@ -1,6 +1,8 @@
 package opdracht4;
 
-public class FifteenStack {
+import java.io.Serializable;
+
+public class FifteenStack implements Serializable{
 	private static final boolean bullshitrules = true; 
 	private int firstStack = 3;
 	private int secondStack = 5;
@@ -18,7 +20,7 @@ public class FifteenStack {
 				return thirdStack;
 			}
 			default:{
-				System.err.println("wrong stack value: " + stack);
+				System.err.println("wrong stack value: look " + stack);
 				return -1;
 			}
 		}
@@ -27,15 +29,19 @@ public class FifteenStack {
 		switch(stack){
 			case 1:{
 				firstStack -= amount;
+				break;
 			}
 			case 2:{
 				secondStack -= amount;
+				break;
 			}
 			case 3:{
 				thirdStack -= amount;
+				break;
 			}
 			default:{
-				System.err.println("wrong stack value: " + stack);
+				System.err.println("wrong stack value: take " + stack);
+				break;
 			}
 		}
 	}
