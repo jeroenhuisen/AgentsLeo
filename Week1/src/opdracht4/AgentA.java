@@ -9,17 +9,18 @@ public class AgentA extends jade.core.Agent{
 
 	private static final long serialVersionUID = 2161863190929663356L;
 	
-	private static String introduce = "introduceren";
-	private static String startGame = "spel starten";
-	private static String acceptGame = "Come at me brawh";
-	private static String makeMove = "spelbeurt";
-	private static String congratz = "gefeliciteerd";
-	private static String logout = "afmelden";
+	private final static String introduce = "introduceren";
+	private final static String startGame = "spel starten";
+	private final static String acceptGame = "Come at me brawh";
+	private final static String makeMove = "spelbeurt";
+	private final static String congratz = "gefeliciteerd";
+	private final static String logout = "afmelden";
 	
-	private static String meta = "meta";
-	private static String game = "game";
+	private final static String meta = "meta";
+	private final static String game = "game";
 	
-	private static String playerName = null;
+	private String playerName = null;
+	private String playstyle = ""; 
 	
 	private AID oppositePlayer;
 	
@@ -96,6 +97,7 @@ public class AgentA extends jade.core.Agent{
 								System.out.println(logout);
 							}else {
 								System.out.println("ELSE");
+								System.out.println(msg.getContent());
 								try{
 									oppositePlayer = msg.getSender();
 									FifteenStack stack = (FifteenStack) msg.getContentObject();
@@ -151,7 +153,7 @@ public class AgentA extends jade.core.Agent{
 		message.addReceiver(oppositePlayer);
 
 		if(calculatorHandler == null){
-			calculatorHandler = new CalculatorHandler();
+			calculatorHandler = new CalculatorHandler(playstyle);
 		}
 		calculatorHandler.calculateStack(stack);
 		message.setLanguage(game);	
@@ -161,22 +163,21 @@ public class AgentA extends jade.core.Agent{
 			System.out.println("Catch");
 			ex.printStackTrace();
 		}
-		//System.out.println("Send");
-		send(message);
-		/*if(stack.look(1) > 0){
-			stack.take(1, 1);
-			System.out.println(getLocalName());
-			System.out.println(stack.toString());
-			try{
-				message.setContentObject(stack);
-			} catch(Exception ex) {
-				System.out.println("Catch");
-				ex.printStackTrace();
-			}
-			//System.out.println("Send");
-			send(message);
-		}*/
 		
+		
+		if(stack.gameOver()){
+			sendGameOver();
+		}else{
+			send(message);
+		}
+	}
+	
+	public void sendGameOver(){
+		ACLMessage message = new ACLMessage(ACLMessage.INFORM);
+		message.addReceiver(oppositePlayer);
+		message.setContent(congratz);
+		message.setLanguage(meta);
+		send(message);
 	}
 }
  

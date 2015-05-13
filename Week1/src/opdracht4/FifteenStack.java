@@ -26,23 +26,28 @@ public class FifteenStack implements Serializable{
 		}
 	}
 	public void take(int stack, int amount){
-		switch(stack){
-			case 1:{
-				firstStack -= amount;
-				break;
+		if(amount > 0){
+			switch(stack){
+				case 1:{
+					firstStack -= amount;
+					break;
+				}
+				case 2:{
+					secondStack -= amount;
+					break;
+				}
+				case 3:{
+					thirdStack -= amount;
+					break;
+				}
+				default:{
+					System.err.println("wrong stack value: take " + stack);
+					break;
+				}
 			}
-			case 2:{
-				secondStack -= amount;
-				break;
-			}
-			case 3:{
-				thirdStack -= amount;
-				break;
-			}
-			default:{
-				System.err.println("wrong stack value: take " + stack);
-				break;
-			}
+		}else{
+			System.err.println("You are a cheater!");
+			System.err.println("The amount you take should be bigger than 0!");
 		}
 	}
 	public boolean gameOver(){

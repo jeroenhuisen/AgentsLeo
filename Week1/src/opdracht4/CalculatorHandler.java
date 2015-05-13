@@ -1,19 +1,30 @@
 package opdracht4;
 
-public class CalculatorHandler {
+public class CalculatorHandler implements Calculator{
+	private Calculator test;
+	
+	public CalculatorHandler(String playstyle){
+		switch(playstyle){
+			case "cheater":{
+				// This playstyle will cheat by taking from multiple stacks
+				// and never taking the last one just returning them.
+				test = new CheaterCalculator();
+				break;
+			}
+			case "random":{
+				// No tactics just taking random amount from a random stack
+				test = new RandomCalculator();
+				break;
+			}
+			default:{
+				System.err.println("No playstyle given using random instead");
+				test = new RandomCalculator();
+				break;
+			}
+		}
+	}
+	
 	public void calculateStack(FifteenStack stack){
-		//calculate stuff.
-		int value = stack.look(1);
-		if(value >= 1){
-			stack.take(1, value-1);
-		}
-		value = stack.look(2);
-		stack.take(2, value);
-		value = stack.look(3);
-		stack.take(3, value);
-		
-		if(stack.gameOver()){
-			System.err.println("I am bad");
-		}
+		test.calculateStack(stack);
 	}
 }
