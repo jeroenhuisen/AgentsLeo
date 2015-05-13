@@ -14,15 +14,14 @@ public class AgentA extends jade.core.Agent{
 	private final static String acceptGame = "Come at me brawh";
 	private final static String makeMove = "spelbeurt";
 	private final static String congratz = "gefeliciteerd";
-	private final static String logout = "afmelden";
+	private final static String signOff = "afmelden";
 	
 	private final static String meta = "meta";
 	private final static String game = "game";
 	
-	private String playerName = null;
 	private String playstyle = ""; 
 	
-	private AID oppositePlayer;
+	private AID oppositePlayer = null;
 	
 	//private int amountOfPlayers = 0;
 	//private static int maxPlayers = 10;
@@ -34,6 +33,7 @@ public class AgentA extends jade.core.Agent{
 		Object[] args = getArguments();
 		
 		System.out.println("Agent: " + getLocalName() + " started");
+		
 		ACLMessage message = new ACLMessage(ACLMessage.INFORM);
 		message.setContent(introduce);
 		message.setLanguage(meta);
@@ -42,18 +42,19 @@ public class AgentA extends jade.core.Agent{
 		messageStart.setContent(startGame);
 		messageStart.setLanguage(meta);
 		
-		//playerName = args[0].toString();
+		// first args should be the playstyle
+		if(args.length > 0){
+			playstyle = args[0].toString();
+		}
 
-		for(int i = 0; i < args.length; i++){
+		for(int i = 1; i < args.length; i++){
 			String agentName = args[i].toString();
-			playerName = args[i].toString();
 			message.addReceiver(new AID(agentName, AID.ISLOCALNAME));
 			send(message);
 			
 			messageStart.addReceiver(new AID(agentName, AID.ISLOCALNAME));
 			send(messageStart);
 		}
-		System.out.println(playerName);
 		addBehaviour(new CyclicBehaviour(){
 			private static final long serialVersionUID = 1L;
 			
@@ -93,8 +94,9 @@ public class AgentA extends jade.core.Agent{
 								System.out.println(makeMove);
 							}else if(msg.getContent().equals(congratz)){
 								System.out.println(congratz);
-							}else if(msg.getContent().equals(logout)){
-								System.out.println(logout);
+								signOff();
+							}else if(msg.getContent().equals(signOff)){
+								System.out.println(signOff);
 							}else {
 								System.out.println("ELSE");
 								System.out.println(msg.getContent());
@@ -139,13 +141,8 @@ public class AgentA extends jade.core.Agent{
 	public void makeMove(FifteenStack stack){
 		if(stack.gameOver()){
 			String gameAlreadyOverMessage = "You lost, already game over and still send message? y u do dis? Cheater";
-			ACLMessage message = new ACLMessage(ACLMessage.INFORM);
-			message.addReceiver(oppositePlayer);
-			message.setLanguage(meta);
-			message.setContent(gameAlreadyOverMessage);
-			send(message);
-			message.setContent(logout);
-			send(message);
+			rageMessage(gameAlreadyOverMessage);
+			signOff();
 		}
 		System.out.println(stack.toString());
 		
@@ -166,16 +163,36 @@ public class AgentA extends jade.core.Agent{
 		
 		
 		if(stack.gameOver()){
-			sendGameOver();
+			gameOver();
 		}else{
 			send(message);
 		}
 	}
 	
-	public void sendGameOver(){
+	public void signOff(){
+		ACLMessage message = new ACLMessage(ACLMessage.INFORM);
+		message.addReceiver(oppositePlayer);
+		message.setContent(signOff);
+		message.setLanguage(meta);
+		send(message);
+		oppositePlayer = null;
+		isPlaying = false;
+	}
+	
+	public void gameOver(){
 		ACLMessage message = new ACLMessage(ACLMessage.INFORM);
 		message.addReceiver(oppositePlayer);
 		message.setContent(congratz);
+		message.setLanguage(meta);
+		send(message);
+		oppositePlayer = null;
+		isPlaying = false;
+	}
+	
+	public void rageMessage(String messageContent){
+		ACLMessage message = new ACLMessage(ACLMessage.INFORM);
+		message.addReceiver(oppositePlayer);
+		message.setContent(messageContent);
 		message.setLanguage(meta);
 		send(message);
 	}
