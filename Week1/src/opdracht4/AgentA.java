@@ -9,15 +9,7 @@ public class AgentA extends jade.core.Agent{
 
 	private static final long serialVersionUID = 2161863190929663356L;
 	
-	private final static String introduce = "introduceren";
-	private final static String startGame = "spel starten";
-	private final static String acceptGame = "Come at me brawh";
-	private final static String makeMove = "spelbeurt";
-	private final static String congratz = "gefeliciteerd";
-	private final static String signOff = "afmelden";
-	
-	private final static String meta = "meta";
-	private final static String game = "game";
+
 	
 	private String playstyle = ""; 
 	
@@ -35,12 +27,12 @@ public class AgentA extends jade.core.Agent{
 		System.out.println("Agent: " + getLocalName() + " started");
 		
 		ACLMessage message = new ACLMessage(ACLMessage.INFORM);
-		message.setContent(introduce);
-		message.setLanguage(meta);
+		message.setContent(Constants.introduce);
+		message.setLanguage(Constants.meta);
 		
 		ACLMessage messageStart = new ACLMessage(ACLMessage.PROPOSE);
-		messageStart.setContent(startGame);
-		messageStart.setLanguage(meta);
+		messageStart.setContent(Constants.startGame);
+		messageStart.setLanguage(Constants.meta);
 		
 		// first args should be the playstyle
 		if(args.length > 0){
@@ -55,87 +47,15 @@ public class AgentA extends jade.core.Agent{
 			messageStart.addReceiver(new AID(agentName, AID.ISLOCALNAME));
 			send(messageStart);
 		}
-		addBehaviour(new CyclicBehaviour(){
-			private static final long serialVersionUID = 1L;
-			
-			public void action(){ 
-				ACLMessage  msg = receive();
-				if (msg != null){ 
-					switch (msg.getPerformative()) {
-					// messagetype holding the requested state for the equiplet
-						case ACLMessage.PROPOSE:
-							if(msg.getContent().equals(startGame)){
-								System.out.println(startGame);
-								startGame(msg);								
-							}
-							break;
-						case ACLMessage.ACCEPT_PROPOSAL:
-							if(msg.getContent().equals(acceptGame)){
-								//this is not needed so don't do anything special here
-							}
-							if(isPlaying){
-								ACLMessage reply = msg.createReply();
-								reply.setPerformative( ACLMessage.REFUSE );
-						        reply.setContent("Already playing");
-						        send(reply);
-								break;
-							}
-							System.out.println("Accept game");
-							isPlaying = true;
-							oppositePlayer = msg.getSender();
-							FifteenStack fs = new FifteenStack();
-							makeMove(fs);
-							break;
-						case ACLMessage.INFORM:
-							//System.out.println("Bericht!");
-							if(msg.getContent().equals(introduce)){
-								System.out.println(introduce);
-							}else if(msg.getContent().equals(makeMove)){
-								System.out.println(makeMove);
-							}else if(msg.getContent().equals(congratz)){
-								System.out.println(congratz);
-								signOff();
-							}else if(msg.getContent().equals(signOff)){
-								System.out.println(signOff);
-							}else {
-								System.out.println("ELSE");
-								System.out.println(msg.getContent());
-								try{
-									oppositePlayer = msg.getSender();
-									FifteenStack stack = (FifteenStack) msg.getContentObject();
-									makeMove(stack);
-								}catch(Exception ex){
-									System.out.println("Oeps!");
-									ex.printStackTrace();
-									System.out.println('\n');
-								}
-							}
-								
-						default:
-							break;
-					}
-				}
-				block(); 
-			}
-		});
+		addBehaviour(new MessageHandlerBehaviour(this));
 		
 		
 	}
-	public void startGame(ACLMessage msg){
-		//if(amountOfPlayers >= maxPlayers){
-		ACLMessage reply = msg.createReply();
-		msg.setLanguage(meta);
-		if(isPlaying){
-	        reply.setPerformative( ACLMessage.REFUSE );
-	        reply.setContent("NO!");
-	        send(reply);
-	        System.out.println("REFUSE");
-		}else{
-			reply.setPerformative( ACLMessage.ACCEPT_PROPOSAL);
-			reply.setContent(acceptGame);
-			send(reply);
-			System.out.println("ACCEPT GAME");
-		}
+	
+	public void startGame(){
+		FifteenStack fs = new FifteenStack();
+		isPlaying = true;
+		makeMove(fs);
 	}
 	
 	public void makeMove(FifteenStack stack){
@@ -153,7 +73,7 @@ public class AgentA extends jade.core.Agent{
 			calculatorHandler = new CalculatorHandler(playstyle);
 		}
 		calculatorHandler.calculateStack(stack);
-		message.setLanguage(game);	
+		message.setLanguage(Constants.game);	
 		try{
 			message.setContentObject(stack);
 		} catch(Exception ex) {
@@ -169,11 +89,12 @@ public class AgentA extends jade.core.Agent{
 		}
 	}
 	
+	
 	public void signOff(){
 		ACLMessage message = new ACLMessage(ACLMessage.INFORM);
 		message.addReceiver(oppositePlayer);
-		message.setContent(signOff);
-		message.setLanguage(meta);
+		message.setContent(Constants.signOff);
+		message.setLanguage(Constants.meta);
 		send(message);
 		oppositePlayer = null;
 		isPlaying = false;
@@ -182,8 +103,8 @@ public class AgentA extends jade.core.Agent{
 	public void gameOver(){
 		ACLMessage message = new ACLMessage(ACLMessage.INFORM);
 		message.addReceiver(oppositePlayer);
-		message.setContent(congratz);
-		message.setLanguage(meta);
+		message.setContent(Constants.congratz);
+		message.setLanguage(Constants.meta);
 		send(message);
 		oppositePlayer = null;
 		isPlaying = false;
@@ -193,8 +114,20 @@ public class AgentA extends jade.core.Agent{
 		ACLMessage message = new ACLMessage(ACLMessage.INFORM);
 		message.addReceiver(oppositePlayer);
 		message.setContent(messageContent);
-		message.setLanguage(meta);
+		message.setLanguage(Constants.meta);
 		send(message);
+	}
+	
+	public boolean isPlaying(){
+		return isPlaying;
+	}
+	
+	public AID getOppositePlayer(){
+		return oppositePlayer;
+	}
+	
+	public void setOppositePlayer(AID player){
+		oppositePlayer = player;
 	}
 }
  
