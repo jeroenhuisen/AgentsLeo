@@ -1,0 +1,33 @@
+package opdracht4;
+
+public class FifteenStack {
+	private int firstStack = 3;
+	private int secondStack = 5;
+	private int thirdStack = 7;
+	
+	public int look(int stack){
+		return stack;
+	}
+	public void take(int stack, int amount){
+		
+	}
+	public boolean gameOver(){
+		if(firstStack <= 0){
+			return true;
+		}else if(secondStack <= 0){
+			return true;
+		}else if(thirdStack <= 0){
+			return true;
+		}
+		return false;
+	}
+	public String toString(){
+		return "Stack 1: " + firstStack +"\n" +
+				"Stack 2: " + secondStack + "\n" +
+				"Stack 3: " + thirdStack + "\n";
+				
+	}
+	public static FifteenStack fromString(String s){
+		return new FifteenStack();
+	}
+}

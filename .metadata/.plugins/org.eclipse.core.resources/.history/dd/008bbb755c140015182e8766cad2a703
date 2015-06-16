@@ -1,0 +1,229 @@
+package internetOfThings;
+
+import internetOfThings.example.DelayBehaviour;
+import internetOfThings.example.myReceiver;
+
+import java.util.Random;
+
+import jade.core.AID;
+import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.ParallelBehaviour;
+import jade.core.behaviours.SequentialBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.SearchConstraints;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
+import jade.proto.SubscriptionInitiator;
+
+import java.util.ArrayList;
+
+public class InductieKookplaatAgent extends Agent {
+	public static final String MAIN_HOST = "192.168.184.143";
+	public static final String MAIN_PORT = "1099";
+	Random rnd = new Random();
+	
+	int bestPrice = 9999;
+
+	ACLMessage msg, bestOffer;
+	/*
+	 * private class onderdelen { int aanstuurunits = 2; int glasplaat = 1; int
+	 * grotePit = 2; int kleinePit = 2; }
+	 */
+
+	ArrayList<String> onderdelen = new ArrayList<String>();
+
+	protected void setup() {
+		onderdelen.add("aanstuurunit");
+		onderdelen.add("aanstuurunit");
+		onderdelen.add("glasplaat");
+		onderdelen.add("grotePit");
+		onderdelen.add("grotePit");
+		onderdelen.add("kleinePit");
+		onderdelen.add("kleinePit");
+
+		addBehaviour(new CyclicBehaviour() {
+
+			@Override
+			public void action() {
+				ACLMessage msg = blockingReceive();
+				if (msg != null) {
+					System.out
+							.printf("message:%s received message [sender=%s, performative=%s, conversation=%s, content=%s]\n",
+									getLocalName(), msg.getSender()
+											.getLocalName(), msg
+											.getPerformative(), msg
+											.getConversationId(), msg
+											.getContent());
+				}
+
+			}
+		});
+
+		// DF register service
+		DFAgentDescription template = new DFAgentDescription();
+		SearchConstraints constraints = new SearchConstraints();
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType("BlackMarket");
+		sd.setName("BlackMarket");
+		template.addServices(sd);
+		template.setName(getAID());
+
+		try {
+			DFService.register(this, template);
+		} catch (FIPAException e) {
+			e.printStackTrace();
+		}
+		// Subscibe to the DF
+		send(DFService.createSubscriptionMessage(this, getDefaultDF(),
+				template, constraints));
+		breakdown();
+		searchDF("BlackMarket");
+	}
+
+	private void breakdown() {
+		// Wait till a part breaksdown max 5 seconds
+		int waitTime = rnd.nextInt(5000);
+		System.out.println(getName() + ": time: " + waitTime);
+		try {
+			Thread.sleep(waitTime);
+
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+		// Choose which part breaksdown
+		int brokenPart = rnd.nextInt(onderdelen.size());
+		String brokenPartName = onderdelen.get(brokenPart);
+		onderdelen.remove(brokenPart);
+
+		// Try to buy a new broken part
+		// First pick (random) price between 25 and 100
+		int price = rnd.nextInt(100 - 25) + 25;
+
+		/*
+		 * ACLMessage message = new ACLMessage(ACLMessage.INFORM);
+		 * message.setOntology("BlackMarket"); message.setContent("test");
+		 */
+
+		 addBuyBehaviour(brokenPartName, price);
+	}
+	
+	private void addBuyBehaviour(String partName, int price){
+		AID[] agents = searchDF("BlackMarket");
+		ACLMessage buyMessage = new ACLMessage(ACLMessage.QUERY_REF);
+		buyMessage.setContent(partName);
+		for(int i = 0; i < agents.length; i++){
+			buyMessage.addReceiver(agents[i]);
+			send(buyMessage);
+		}
+	}
+
+	// searchDF
+	AID[] searchDF(String service) {
+		System.out.println("searchDF");
+		DFAgentDescription dfd = new DFAgentDescription();
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType(service);
+		dfd.addServices(sd);
+
+		SearchConstraints ALL = new SearchConstraints();
+		ALL.setMaxResults(new Long(-1));
+
+		try {
+			DFAgentDescription[] result = DFService.search(this, dfd, ALL);
+			System.out.println(result.length);
+			AID[] agents = new AID[result.length];
+			for (int i = 0; i < result.length; i++)
+				agents[i] = result[i].getName();
+			return agents;
+
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
+
+		return null;
+	}
+
+	
+	private void buyerBehaviour(){
+		msg = new ACLMessage(ACLMessage.QUERY_REF);
+	
+		
+		MessageTemplate template = MessageTemplate.and(
+				MessageTemplate.MatchPerformative(ACLMessage.INFORM),
+				MessageTemplate.MatchConversationId(msg.getConversationId()));
+
+		System.out.println("Buyer " + getLocalName() + " gets prices.");
+
+		SequentialBehaviour seq = new SequentialBehaviour();
+		addBehaviour(seq);
+
+		ParallelBehaviour par = new ParallelBehaviour(
+				ParallelBehaviour.WHEN_ALL);
+		seq.addSubBehaviour(par);
+
+		AID[] agents = searchDF("BlackMarket");
+		for(int i = 0; i < agents.length; i++){
+			msg.addReceiver(agents[i]);
+			par.addSubBehaviour(new myReceiver(this, 1000, template) {
+				public void handle(ACLMessage msg) {
+					if (msg != null) {
+						int offer = Integer.parseInt(msg.getContent());
+						System.out.println("Got quote $" + offer + " from "
+								+ msg.getSender().getLocalName());
+						if (offer < bestPrice) {
+							bestPrice = offer;
+							bestOffer = msg;
+						}
+					}
+				}
+			});
+		}
+
+		seq.addSubBehaviour(new DelayBehaviour(this, rnd.nextInt(2000)) {
+			public void handleElapsedTimeout() {
+				if (bestOffer == null) {
+					System.out.println("Got no quotes");
+				} else {
+					System.out.println("\nBest Price $" + bestPrice + " from "
+							+ bestOffer.getSender().getLocalName());
+					ACLMessage reply = bestOffer.createReply();
+					if (bestPrice <= 80) {
+						reply.setPerformative(ACLMessage.REQUEST);
+						reply.setContent("" + rnd.nextInt(80));
+						System.out.print(" ORDER at " + reply.getContent());
+						send(reply);
+					}
+				}
+			}
+		});
+
+		seq.addSubBehaviour(new myReceiver(this, 1000, MessageTemplate.and(
+				MessageTemplate.MatchConversationId(msg.getConversationId()),
+				MessageTemplate.or(
+						MessageTemplate.MatchPerformative(ACLMessage.AGREE),
+						MessageTemplate.MatchPerformative(ACLMessage.REFUSE)))) {
+			public void handle(ACLMessage msg) {
+				if (msg != null) {
+					System.out.println("Got "
+							+ ACLMessage.getPerformative(msg.getPerformative())
+							+ " from " + msg.getSender().getLocalName());
+
+					if (msg.getPerformative() == ACLMessage.AGREE)
+						System.out.println("  --------- Finished ---------\n");
+					else
+						setup();
+				} else {
+					System.out.println("==" + getLocalName() + " timed out");
+					setup();
+				}
+			}
+		});
+
+		send(msg);
+	}
+}

@@ -1,0 +1,18 @@
+package internetOfThings;
+
+import jade.core.Agent;
+
+public class InductieKookplaatAgent extends Agent{
+	
+	private class onderdelen{
+		int aanstuurunits = 2;
+		int glasplaat = 1;
+		int grotePit = 2;
+		int kleinePit = 2;
+	}
+	
+	protected void setup() {
+	
+	}
+
+}

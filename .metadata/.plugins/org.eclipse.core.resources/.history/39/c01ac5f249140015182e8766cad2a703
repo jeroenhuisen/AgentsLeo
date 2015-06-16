@@ -1,0 +1,126 @@
+package internetOfThings;
+
+import internetOfThings.example.Buyer;
+
+import java.util.Random;
+
+import jade.core.AID;
+import jade.core.Agent;
+import jade.core.Profile;
+import jade.core.ProfileImpl;
+import jade.core.behaviours.CyclicBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.SearchConstraints;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.lang.acl.ACLMessage;
+
+import java.util.ArrayList;
+
+
+public class InductieKookplaatAgent extends Agent{
+	public static final String MAIN_HOST = "192.168.184.143";
+	public static final String MAIN_PORT = "1099";
+	Random rnd = new Random();
+	
+	private class onderdelen{
+		int aanstuurunits = 2;
+		int glasplaat = 1;
+		int grotePit = 2;
+		int kleinePit = 2;
+	}
+	ArrayList<String> onderdelen = new ArrayList<String>(); 
+		
+	
+	protected void setup() {
+		onderdelen.add("aanstuurunit");
+		onderdelen.add("aanstuurunit");
+		onderdelen.add("glasplaat");
+		onderdelen.add("grotePit");
+		onderdelen.add("grotePit");
+		onderdelen.add("kleinePit");
+		onderdelen.add("kleinePit");
+		
+		// DF subscribe
+		DFAgentDescription template = new DFAgentDescription();
+		SearchConstraints constraints = new SearchConstraints();
+        ServiceDescription sd = new ServiceDescription();
+        sd.setType("BlackMarket");
+		template.addServices(sd);
+		send(DFService.createSubscriptionMessage(this, getDefaultDF(), template, constraints));
+		
+		addBehaviour(new CyclicBehaviour() {
+			
+			@Override
+			public void action() {
+				ACLMessage msg = blockingReceive();
+				if (msg != null) {
+					System.out.printf("message:%s received message [sender=%s, performative=%s, conversation=%s, content=%s]\n", getLocalName(), msg.getSender().getLocalName(), msg.getPerformative(), msg.getConversationId(), msg.getContent());
+				}
+				
+			}
+		});
+		breakdown();
+		searchDF("BlackMarket");
+	}
+	
+	private void breakdown(){
+		// Wait till a part breaksdown max 5 seconds
+		int waitTime = rnd.nextInt(5000);
+		System.out.println(getName() + ": time: " + waitTime);
+		try {
+			Thread.sleep(waitTime);
+			
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		// Choose which part breaksdown
+		int brokenPart = rnd.nextInt(onderdelen.size());
+		String brokenPartName = onderdelen.get(brokenPart);
+		onderdelen.remove(brokenPart);
+		
+		// Try to buy a new broken part
+		// First pick (random) price between 25 and 100
+		int price = rnd.nextInt(100-25) + 25;
+		
+		
+	/*	ACLMessage message = new ACLMessage(ACLMessage.INFORM);
+		message.setOntology("BlackMarket");
+		message.setContent("test");*/
+
+		//addBuyBehaviour(brokenPartName, price);
+	}
+	
+	// searchDF
+	 AID [] searchDF( String service )
+	    {
+		 	System.out.println("searchDF");
+	        DFAgentDescription dfd = new DFAgentDescription();
+	        ServiceDescription sd = new ServiceDescription();
+	        sd.setType(service);
+	        dfd.addServices(sd);
+	        
+	        SearchConstraints ALL = new SearchConstraints();
+	        ALL.setMaxResults(new Long(-1));
+
+	        try
+	        {
+	            DFAgentDescription[] result = DFService.search(this, dfd, ALL);
+	            System.out.println(result.length);
+	            AID[] agents = new AID[result.length];
+	            for (int i=0; i<result.length; i++) 
+	                agents[i] = result[i].getName();
+	            return agents;
+
+	        }
+	        catch (FIPAException fe) { fe.printStackTrace(); }
+	        
+	        return null;
+	    }
+	
+	// --- generating distinct Random generator -------------------
+
+
+}

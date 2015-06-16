@@ -1,0 +1,39 @@
+package internetOfThings;
+
+import java.util.Random;
+
+import jade.core.Agent;
+
+public class InductieKookplaatAgent extends Agent{
+	Random rndBreakTime = new Random(5000);
+	
+	private class onderdelen{
+		int aanstuurunits = 2;
+		int glasplaat = 1;
+		int grotePit = 2;
+		int kleinePit = 2;
+	}
+	private ArrayList<String> = new ArrayList<String>(); 
+		{"aanstuurunit", "aanstuurunit", "glasplaat", "grotePit", "grotePit", "kleinePit", "kleinePit"};
+	
+	protected void setup() {
+		breakdown(); 
+	}
+	
+	private void breakdown(){
+		int waitTime = rndBreakTime.nextInt();
+		System.out.println(getName() + ": time: " + waitTime);
+		try {
+			Thread.sleep(waitTime);
+			
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		int 
+		
+	}
+	
+	// --- generating distinct Random generator -------------------
+
+
+}

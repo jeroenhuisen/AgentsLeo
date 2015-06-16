@@ -1,0 +1,23 @@
+package internetOfThings;
+
+import java.util.Random;
+
+import jade.core.Agent;
+
+public class InductieKookplaatAgent extends Agent{
+	Random rnd = newRandom();
+	private class onderdelen{
+		int aanstuurunits = 2;
+		int glasplaat = 1;
+		int grotePit = 2;
+		int kleinePit = 2;
+	}
+	
+	protected void setup() {
+		breakdown();
+	}
+	
+	private void breakdown(){
+		
+	}
+}

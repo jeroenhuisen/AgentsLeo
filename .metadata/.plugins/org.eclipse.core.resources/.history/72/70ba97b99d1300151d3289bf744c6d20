@@ -1,0 +1,9 @@
+package internetOfThings;
+
+import jade.core.Agent;
+
+public class InductieKookplaatAgent extends Agent{
+	
+	
+
+}

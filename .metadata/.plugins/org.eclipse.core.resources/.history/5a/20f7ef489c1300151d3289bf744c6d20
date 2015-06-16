@@ -1,0 +1,7 @@
+package internetOfThings;
+
+import jade.core.Agent;
+
+public class IOTAgent extends Agent{
+
+}

@@ -1,0 +1,75 @@
+package internetOfThings.example;
+
+import java.util.Random;
+
+import jade.core.Agent;
+import jade.core.behaviours.SequentialBehaviour;
+import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
+
+class Transaction extends SequentialBehaviour 
+{
+   /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	ACLMessage msg,
+              reply ;
+   String     ConvID ;
+   //Random( hashCode() + System.currentTimeMillis())
+   Random     rnd  = new Random();
+   int    price  = rnd.nextInt(100);
+
+   public Transaction(Agent a, ACLMessage msg) 
+   {
+      super( a );
+      this.msg = msg;
+      ConvID = msg.getConversationId();
+   }
+   
+   public void onStart() 
+   {
+      addSubBehaviour( new DelayBehaviour( myAgent, rnd.nextInt( 2000 ))
+      {
+         /**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public void handleElapsedTimeout() { 
+            reply = msg.createReply();
+            reply.setPerformative( ACLMessage.INFORM );
+            reply.setContent("" + price );
+            send(reply); 
+         }
+      });
+
+      MessageTemplate template = MessageTemplate.and( 
+         MessageTemplate.MatchPerformative( ACLMessage.REQUEST ),
+         MessageTemplate.MatchConversationId( ConvID ));
+     
+      addSubBehaviour( new myReceiver( myAgent, 2000, template) 
+      {
+         public void handle( ACLMessage msg1) 
+         {  
+            if (msg1 != null ) 
+            {
+               int offer = Integer.parseInt( msg1.getContent());
+                  
+               reply = msg1.createReply();
+               if ( offer >= rnd.nextInt(price) )
+                  reply.setPerformative( ACLMessage.AGREE );
+               else
+                  reply.setPerformative( ACLMessage.REFUSE );
+               send(reply);
+            } 
+            else {
+               System.out.println("Timeout ! quote $" + price +
+                   " from " + getLocalName() +
+                   " is no longer valid");
+            }
+         }  
+      });
+   }
+         
+}  // --- Transaction class ---
