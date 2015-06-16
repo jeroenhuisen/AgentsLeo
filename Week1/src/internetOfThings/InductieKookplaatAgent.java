@@ -28,6 +28,9 @@ public class InductieKookplaatAgent extends Agent {
 	int bestPrice = 9999;
 
 	ACLMessage msg, bestOffer;
+	
+	int timesTried = 0;
+	
 	/*
 	 * private class onderdelen { int aanstuurunits = 2; int glasplaat = 1; int
 	 * grotePit = 2; int kleinePit = 2; }
@@ -77,10 +80,9 @@ public class InductieKookplaatAgent extends Agent {
 			e.printStackTrace();
 		}
 		// Subscibe to the DF
-		send(DFService.createSubscriptionMessage(this, getDefaultDF(),
-				template, constraints));
+		//send(DFService.createSubscriptionMessage(this, getDefaultDF(), template, constraints));
 		breakdown();
-		searchDF("BlackMarket");
+		//searchDF("BlackMarket");
 	}
 
 	private void breakdown() {
@@ -163,6 +165,8 @@ public class InductieKookplaatAgent extends Agent {
 				MessageTemplate.MatchConversationId(msg.getConversationId()));
 
 		System.out.println("Buyer " + getLocalName() + " gets prices.");
+		
+	
 
 		SequentialBehaviour seq = new SequentialBehaviour();
 		addBehaviour(seq);
@@ -212,26 +216,53 @@ public class InductieKookplaatAgent extends Agent {
 				MessageTemplate.or(
 						MessageTemplate.MatchPerformative(ACLMessage.AGREE),
 						MessageTemplate.MatchPerformative(ACLMessage.REFUSE)))) {
+			
 			public void handle(ACLMessage msg) {
 				if (msg != null) {
 					System.out.println("Got "
 							+ ACLMessage.getPerformative(msg.getPerformative())
 							+ " from " + msg.getSender().getLocalName());
 
-					if (msg.getPerformative() == ACLMessage.AGREE)
+					if (msg.getPerformative() == ACLMessage.AGREE){
 						System.out.println("  --------- Finished ---------\n");
+						auctionSucces();
+					}
 					else{
-						//setup();
-						//buyerBehaviour();
+						auctionFailed();
 					}
 				} else {
 					System.out.println("==" + getLocalName() + " timed out");
-					//setup();
-					//buyerBehaviour();
+					auctionFailed();
 				}
 			}
 		});
 
 		send(msg);
+	}
+	
+	private void auctionFailed(){
+
+		// wait 5 seconds
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		timesTried+=1;
+		// Failed try 3 times again.
+		if(timesTried >= 3){
+			timesTried = 0;
+			// RAGEQUIT
+			System.out.println("3 fails, now going to sell my shit, uhm stuff...");
+			//sellerBehaviour();
+
+		}else{
+			// try again
+			buyerBehaviour();
+		}
+	}
+	
+	private void auctionSucces(){
+		timesTried = 0;
 	}
 }
