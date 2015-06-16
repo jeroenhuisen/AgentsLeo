@@ -7,16 +7,13 @@ import java.util.Random;
 
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.CyclicBehaviour;
-import jade.core.behaviours.ParallelBehaviour;
-import jade.core.behaviours.SequentialBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.SearchConstraints;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
-import jade.lang.acl.ACLMessage;
-import jade.lang.acl.MessageTemplate;
+import jade.core.behaviours.*;
+import jade.lang.acl.*;
 
 import java.util.ArrayList;
 
@@ -46,24 +43,6 @@ public class InductieKookplaatAgent extends Agent {
 		onderdelen.add("grotePit");
 		onderdelen.add("kleinePit");
 		onderdelen.add("kleinePit");
-
-		/*addBehaviour(new CyclicBehaviour() {
-
-			@Override
-			public void action() {
-				ACLMessage msg = blockingReceive();
-				if (msg != null) {
-					System.out
-							.printf("message:%s received message [sender=%s, performative=%s, conversation=%s, content=%s]\n",
-									getLocalName(), msg.getSender()
-											.getLocalName(), msg
-											.getPerformative(), msg
-											.getConversationId(), msg
-											.getContent());
-				}
-
-			}
-		});*/
 
 		// DF register service
 		DFAgentDescription template = new DFAgentDescription();
@@ -103,27 +82,16 @@ public class InductieKookplaatAgent extends Agent {
 
 		// Try to buy a new broken part
 		// First pick (random) price between 25 and 100
-		int price = rnd.nextInt(100 - 25) + 25;
+		//int price = rnd.nextInt(100 - 25) + 25;
 
 		/*
 		 * ACLMessage message = new ACLMessage(ACLMessage.INFORM);
 		 * message.setOntology("BlackMarket"); message.setContent("test");
 		 */
 
-		 //addBuyBehaviour(brokenPartName, price);
 		buyerBehaviour();
 	}
 	
-	private void addBuyBehaviour(String partName, int price){
-		AID[] agents = searchDF("BlackMarket");
-		ACLMessage buyMessage = new ACLMessage(ACLMessage.QUERY_REF);
-		buyMessage.setContent(partName);
-		for(int i = 0; i < agents.length; i++){
-			buyMessage.addReceiver(agents[i]);
-			send(buyMessage);
-		}
-	}
-
 	// searchDF
 	AID[] searchDF(String service) {
 		System.out.println("searchDF");
@@ -137,15 +105,17 @@ public class InductieKookplaatAgent extends Agent {
 
 		try {
 			DFAgentDescription[] result = DFService.search(this, dfd, ALL);
-			System.out.println(result.length);
-			AID[] agents = new AID[result.length];
-			for (int i = 0; i < result.length; i++)
+			AID[] agents = new AID[result.length-1];
+			int iA = 0;
+			for (int i = 0; i < result.length; i++){
 				// dont add yourself, no need to send a message to yourself :D
 				if(result[i].getName().equals(getAID())){
-					
 				}else{
-					agents[i] = result[i].getName();
+					agents[iA] = result[i].getName();
+					iA++;
 				}
+			}
+			System.out.println(agents.length);
 			return agents;
 
 		} catch (FIPAException fe) {
@@ -158,11 +128,10 @@ public class InductieKookplaatAgent extends Agent {
 	
 	private void buyerBehaviour(){
 		msg = new ACLMessage(ACLMessage.QUERY_REF);
+		msg.setSender(getAID());
 	
 		
-		MessageTemplate template = MessageTemplate.and(
-				MessageTemplate.MatchPerformative(ACLMessage.INFORM),
-				MessageTemplate.MatchConversationId(msg.getConversationId()));
+		MessageTemplate template = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
 
 		System.out.println("Buyer " + getLocalName() + " gets prices.");
 		
@@ -176,6 +145,7 @@ public class InductieKookplaatAgent extends Agent {
 		seq.addSubBehaviour(par);
 
 		AID[] agents = searchDF("BlackMarket");
+		System.out.println(agents.length);
 		for(int i = 0; i < agents.length; i++){
 			msg.addReceiver(agents[i]);
 			par.addSubBehaviour(new myReceiver(this, 1000, template) {
@@ -188,12 +158,13 @@ public class InductieKookplaatAgent extends Agent {
 							bestPrice = offer;
 							bestOffer = msg;
 						}
+					}else{
 					}
 				}
 			});
 		}
 
-		seq.addSubBehaviour(new DelayBehaviour(this, rnd.nextInt(2000)) {
+		seq.addSubBehaviour(new DelayBehaviour(this, rnd.nextInt(200)) {
 			public void handleElapsedTimeout() {
 				if (bestOffer == null) {
 					System.out.println("Got no quotes");
@@ -211,11 +182,9 @@ public class InductieKookplaatAgent extends Agent {
 			}
 		});
 
-		seq.addSubBehaviour(new myReceiver(this, 1000, MessageTemplate.and(
-				MessageTemplate.MatchConversationId(msg.getConversationId()),
-				MessageTemplate.or(
+		seq.addSubBehaviour(new myReceiver(this, 1000, MessageTemplate.or(
 						MessageTemplate.MatchPerformative(ACLMessage.AGREE),
-						MessageTemplate.MatchPerformative(ACLMessage.REFUSE)))) {
+						MessageTemplate.MatchPerformative(ACLMessage.REFUSE))) {
 			
 			public void handle(ACLMessage msg) {
 				if (msg != null) {
@@ -244,7 +213,7 @@ public class InductieKookplaatAgent extends Agent {
 
 		// wait 5 seconds
 		try {
-			Thread.sleep(5000);
+			Thread.sleep(1000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -254,7 +223,7 @@ public class InductieKookplaatAgent extends Agent {
 			timesTried = 0;
 			// RAGEQUIT
 			System.out.println("3 fails, now going to sell my shit, uhm stuff...");
-			//sellerBehaviour();
+			senderBehaviour();
 
 		}else{
 			// try again
@@ -265,4 +234,87 @@ public class InductieKookplaatAgent extends Agent {
 	private void auctionSucces(){
 		timesTried = 0;
 	}
+	
+	private void senderBehaviour(){
+		
+		addBehaviour( new CyclicBehaviour(this) 
+		{
+			public void action() 
+			{
+				MessageTemplate query  = MessageTemplate.MatchPerformative
+                        ( ACLMessage.QUERY_REF );
+				ACLMessage msg = receive( query );
+				if (msg!=null) 
+					addBehaviour( new Transaction(myAgent, msg) );
+				block();
+			}
+		});
+	}
+	
+	
+	class Transaction extends SequentialBehaviour 
+	{
+		ACLMessage msg,
+		           reply ;
+		String     ConvID ;
+		
+		int    price  = rnd.nextInt(100);
+
+		public Transaction(Agent a, ACLMessage msg) 
+		{
+			super( a );
+			this.msg = msg;
+			ConvID = msg.getConversationId();
+		}
+		
+		public void onStart() 
+		{
+		   int delay = delay = rnd.nextInt( 200 );
+			System.out.println( " - " +
+				myAgent.getLocalName() + " <- QUERY from " +
+				msg.getSender().getLocalName() +
+				".  Will answer $" + price + " in " + delay + " ms");
+				
+			addSubBehaviour( new DelayBehaviour( myAgent, delay)
+	      	{
+				public void handleElapsedTimeout() { 
+					reply = msg.createReply();
+					reply.setPerformative( ACLMessage.INFORM );
+					reply.setContent("" + price );
+					send(reply); 
+				}
+	      	});
+
+			MessageTemplate template = MessageTemplate.MatchPerformative( ACLMessage.REQUEST );
+	    
+			addSubBehaviour( new myReceiver( myAgent, 2000, template) 
+			{
+				public void handle( ACLMessage msg1) 
+				{  
+					if (msg1 != null ) {
+						
+						int offer = Integer.parseInt( msg1.getContent());
+						System.out.println("Got proposal $" + offer +
+							" from " + msg1.getSender().getLocalName() +
+						   " & my price is $" + price );
+							
+						reply = msg1.createReply();
+						if ( offer >= rnd.nextInt(price) )
+							reply.setPerformative( ACLMessage.AGREE );
+						else
+							reply.setPerformative( ACLMessage.REFUSE );
+						send(reply);
+						System.out.println("  == " + 
+							ACLMessage.getPerformative(reply.getPerformative() ));
+				   } 
+				   else {
+				   	System.out.println("Timeout ! quote $" + price +
+				   	    " from " + getLocalName() +
+						    " is no longer valid");
+					}
+				}	
+			});
+		}
+	        
+	} 
 }
