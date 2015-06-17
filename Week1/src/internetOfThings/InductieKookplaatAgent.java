@@ -18,24 +18,35 @@ import jade.lang.acl.*;
 import java.util.ArrayList;
 
 public class InductieKookplaatAgent extends Agent {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	public static final String MAIN_HOST = "192.168.184.143";
 	public static final String MAIN_PORT = "1099";
+	private DFUtils dfutils;
+	
 	Random rnd = new Random();
 	
-	int bestPrice = 9999;
-
-	ACLMessage msg, bestOffer;
-	
 	int timesTried = 0;
+	int bestPrice = 9999;
 	
+	ACLMessage msg, bestOffer;
+
 	/*
-	 * private class onderdelen { int aanstuurunits = 2; int glasplaat = 1; int
-	 * grotePit = 2; int kleinePit = 2; }
+	 * private class onderdelen { 
+	 * int aanstuurunits = 2; 
+	 * int glasplaat = 1; 
+	 * int grotePit = 2; 
+	 * int kleinePit = 2; 
+	 * }
 	 */
 
 	ArrayList<String> onderdelen = new ArrayList<String>();
 
 	protected void setup() {
+		this.dfutils       = new DFUtils(this);
+		
 		onderdelen.add("aanstuurunit");
 		onderdelen.add("aanstuurunit");
 		onderdelen.add("glasplaat");
@@ -45,11 +56,13 @@ public class InductieKookplaatAgent extends Agent {
 		onderdelen.add("kleinePit");
 
 		// DF register service
-		DFAgentDescription template = new DFAgentDescription();
-		SearchConstraints constraints = new SearchConstraints();
-		ServiceDescription sd = new ServiceDescription();
+		DFAgentDescription template 	= new DFAgentDescription();
+		new SearchConstraints();
+		ServiceDescription sd 			= new ServiceDescription();
+		
 		sd.setType("BlackMarket");
 		sd.setName("BlackMarket");
+		
 		template.addServices(sd);
 		template.setName(getAID());
 
@@ -76,8 +89,8 @@ public class InductieKookplaatAgent extends Agent {
 		}
 
 		// Choose which part breaksdown
-		int brokenPart = rnd.nextInt(onderdelen.size());
-		String brokenPartName = onderdelen.get(brokenPart);
+		int brokenPart 			= rnd.nextInt(onderdelen.size());
+		onderdelen.get(brokenPart);
 		onderdelen.remove(brokenPart);
 
 		// Try to buy a new broken part
@@ -92,38 +105,7 @@ public class InductieKookplaatAgent extends Agent {
 		buyerBehaviour();
 	}
 	
-	// searchDF
-	AID[] searchDF(String service) {
-		System.out.println("searchDF");
-		DFAgentDescription dfd = new DFAgentDescription();
-		ServiceDescription sd = new ServiceDescription();
-		sd.setType(service);
-		dfd.addServices(sd);
 
-		SearchConstraints ALL = new SearchConstraints();
-		ALL.setMaxResults(new Long(-1));
-
-		try {
-			DFAgentDescription[] result = DFService.search(this, dfd, ALL);
-			AID[] agents = new AID[result.length-1];
-			int iA = 0;
-			for (int i = 0; i < result.length; i++){
-				// dont add yourself, no need to send a message to yourself :D
-				if(result[i].getName().equals(getAID())){
-				}else{
-					agents[iA] = result[i].getName();
-					iA++;
-				}
-			}
-			System.out.println(agents.length);
-			return agents;
-
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
-
-		return null;
-	}
 
 	
 	private void buyerBehaviour(){
@@ -140,11 +122,10 @@ public class InductieKookplaatAgent extends Agent {
 		SequentialBehaviour seq = new SequentialBehaviour();
 		addBehaviour(seq);
 
-		ParallelBehaviour par = new ParallelBehaviour(
-				ParallelBehaviour.WHEN_ALL);
+		ParallelBehaviour par = new ParallelBehaviour( ParallelBehaviour.WHEN_ALL );
 		seq.addSubBehaviour(par);
 
-		AID[] agents = searchDF("BlackMarket");
+		AID[] agents = dfutils.searchDF("BlackMarket");
 		System.out.println(agents.length);
 		for(int i = 0; i < agents.length; i++){
 			msg.addReceiver(agents[i]);
@@ -152,8 +133,7 @@ public class InductieKookplaatAgent extends Agent {
 				public void handle(ACLMessage msg) {
 					if (msg != null) {
 						int offer = Integer.parseInt(msg.getContent());
-						System.out.println("Got quote $" + offer + " from "
-								+ msg.getSender().getLocalName());
+						System.out.println("Got quote $" + offer + " from " + msg.getSender().getLocalName());
 						if (offer < bestPrice) {
 							bestPrice = offer;
 							bestOffer = msg;
@@ -241,8 +221,7 @@ public class InductieKookplaatAgent extends Agent {
 		{
 			public void action() 
 			{
-				MessageTemplate query  = MessageTemplate.MatchPerformative
-                        ( ACLMessage.QUERY_REF );
+				MessageTemplate query  = MessageTemplate.MatchPerformative( ACLMessage.QUERY_REF );
 				ACLMessage msg = receive( query );
 				if (msg!=null) 
 					addBehaviour( new Transaction(myAgent, msg) );
@@ -263,17 +242,16 @@ public class InductieKookplaatAgent extends Agent {
 		public Transaction(Agent a, ACLMessage msg) 
 		{
 			super( a );
-			this.msg = msg;
-			ConvID = msg.getConversationId();
+			this.msg 	= msg;
+			ConvID 		= msg.getConversationId();
 		}
 		
 		public void onStart() 
 		{
-		   int delay = delay = rnd.nextInt( 200 );
+			int delay = delay = rnd.nextInt( 200 );
 			System.out.println( " - " +
 				myAgent.getLocalName() + " <- QUERY from " +
-				msg.getSender().getLocalName() +
-				".  Will answer $" + price + " in " + delay + " ms");
+				msg.getSender().getLocalName() + ".  Will answer $" + price + " in " + delay + " ms");
 				
 			addSubBehaviour( new DelayBehaviour( myAgent, delay)
 	      	{
@@ -294,8 +272,7 @@ public class InductieKookplaatAgent extends Agent {
 					if (msg1 != null ) {
 						
 						int offer = Integer.parseInt( msg1.getContent());
-						System.out.println("Got proposal $" + offer +
-							" from " + msg1.getSender().getLocalName() +
+						System.out.println("Got proposal $" + offer + " from " + msg1.getSender().getLocalName() +
 						   " & my price is $" + price );
 							
 						reply = msg1.createReply();
@@ -304,12 +281,10 @@ public class InductieKookplaatAgent extends Agent {
 						else
 							reply.setPerformative( ACLMessage.REFUSE );
 						send(reply);
-						System.out.println("  == " + 
-							ACLMessage.getPerformative(reply.getPerformative() ));
+						System.out.println("  == " + ACLMessage.getPerformative(reply.getPerformative() ));
 				   } 
 				   else {
-				   	System.out.println("Timeout ! quote $" + price +
-				   	    " from " + getLocalName() +
+				   	System.out.println("Timeout ! quote $" + price + " from " + getLocalName() +
 						    " is no longer valid");
 					}
 				}	
