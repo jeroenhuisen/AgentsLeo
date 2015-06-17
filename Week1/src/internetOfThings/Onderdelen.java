@@ -9,6 +9,27 @@ public class Onderdelen {
 	 * int grotePit = 2; 
 	 * int kleinePit = 2; 
 	 */
+	
+	private class Onderdeel{
+		Module m;
+		int amount;
+		
+		Onderdeel(Module m, int amount){
+			this.m = m;
+			this.amount = amount;
+		}
+		
+		public void addModule(){
+			amount++;
+		}
+		public boolean removeModule(){
+			if(amount > 0){
+				amount--;
+				return true;
+			}
+			return false;
+		}
+	}
 	public static enum Module{
 		aanstuurunit,
 		glasplaat,
