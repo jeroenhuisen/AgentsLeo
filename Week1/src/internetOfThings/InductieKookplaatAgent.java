@@ -60,6 +60,7 @@ public class InductieKookplaatAgent extends Agent {
 		new SearchConstraints();
 		ServiceDescription sd 			= new ServiceDescription();
 		
+		// Set de type en naam van de service.
 		sd.setType("BlackMarket");
 		sd.setName("BlackMarket");
 		
@@ -89,9 +90,15 @@ public class InductieKookplaatAgent extends Agent {
 		}
 
 		// Choose which part breaksdown
-		int brokenPart 			= rnd.nextInt(onderdelen.size());
-		onderdelen.get(brokenPart);
-		onderdelen.remove(brokenPart);
+		
+		// Why 36 in roulette there are 37 possible outcomes.
+		// so this is 36 + the zero.
+		// If the nextInt is Zero the house wins and the gambler loses a part of his kit.
+		if(rnd.nextInt(36) == 0){
+			int brokenPart 			= rnd.nextInt(onderdelen.size());
+			onderdelen.get(brokenPart);
+			onderdelen.remove(brokenPart);
+		}
 
 		// Try to buy a new broken part
 		// First pick (random) price between 25 and 100
@@ -117,8 +124,6 @@ public class InductieKookplaatAgent extends Agent {
 
 		System.out.println("Buyer " + getLocalName() + " gets prices.");
 		
-	
-
 		SequentialBehaviour seq = new SequentialBehaviour();
 		addBehaviour(seq);
 
@@ -201,7 +206,7 @@ public class InductieKookplaatAgent extends Agent {
 		// Failed try 3 times again.
 		if(timesTried >= 3){
 			timesTried = 0;
-			// RAGEQUIT
+			// Er is nu 3 keer geprobeert om te kijken of er iets te koop is.
 			System.out.println("3 fails, now going to sell my shit, uhm stuff...");
 			senderBehaviour();
 
@@ -211,9 +216,7 @@ public class InductieKookplaatAgent extends Agent {
 		}
 	}
 	
-	private void auctionSucces(){
-		timesTried = 0;
-	}
+	private void auctionSucces(){		timesTried = 0;	}
 	
 	private void senderBehaviour(){
 		
